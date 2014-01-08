@@ -7,7 +7,7 @@
 
 #define taster 4
 
-#define token 13000
+#define token 9000
 #define top 125000
 
 volatile unsigned long encoder0Pos = 0;
@@ -50,7 +50,7 @@ void command_read() {
 
 void command_analogue_read() {
   int pin = read_pin();
-  if(pin == 27) Serial.print(pos);
+  if(pin == 10) Serial.print(pos);
   else {
     int value = analogRead(pin);
     Serial.print(value);
@@ -107,11 +107,11 @@ void loop() {
   }
   if(digitalRead(taster) == LOW) {
     encoder0Pos = 0;
-    pos = '0';
+    pos = 0;
   }
   else {
-    if(encoder0Pos >= token - 1500 && encoder0Pos <= token + 1500) pos = '1';
-    else if(encoder0Pos >= top && encoder0Pos <= top + 3000) pos = '2';
+    if(encoder0Pos >= token - 1500 && encoder0Pos <= token + 1500) pos = 1;
+    else if(encoder0Pos >= top && encoder0Pos <= top + 3000) pos = 2;
     else pos = 3;
   }
 }
