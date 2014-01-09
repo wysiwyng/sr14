@@ -7,8 +7,9 @@
 
 #define taster 4
 
-#define token 9000
-#define top 125000
+#define token 11000
+#define drive 80000
+#define top 122000
 
 volatile unsigned long encoder0Pos = 0;
 
@@ -110,9 +111,10 @@ void loop() {
     pos = 0;
   }
   else {
-    if(encoder0Pos >= token - 1500 && encoder0Pos <= token + 1500) pos = 1;
-    else if(encoder0Pos >= top && encoder0Pos <= top + 3000) pos = 2;
-    else pos = 3;
+    if(encoder0Pos >= token - 1700 && encoder0Pos <= token + 1700) pos = 1;
+    else if(encoder0Pos >= drive - 1700 && encoder0Pos <= drive + 7500) pos = 2;
+    else if(encoder0Pos >= top) pos = 3;
+    else pos = 4;
   }
 }
 void doEncoderA(){
