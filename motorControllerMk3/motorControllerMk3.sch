@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE eagle SYSTEM "eagle.dtd">
-<eagle version="6.3">
+<eagle version="6.5.0">
 <drawing>
 <settings>
 <setting alwaysvectorfont="no"/>
@@ -16561,9 +16561,7 @@ Source: http://pdf1.alldatasheet.com/datasheet-pdf/view/84563/STMICROELECTRONICS
 <wire x1="129.54" y1="17.78" x2="129.54" y2="20.32" width="0.1524" layer="91"/>
 <wire x1="129.54" y1="20.32" x2="129.54" y2="22.86" width="0.1524" layer="91"/>
 <wire x1="129.54" y1="22.86" x2="132.08" y2="22.86" width="0.1524" layer="91"/>
-<wire x1="132.08" y1="22.86" x2="132.08" y2="35.56" width="0.1524" layer="91"/>
-<pinref part="SV2" gate="1" pin="5"/>
-<wire x1="152.4" y1="35.56" x2="132.08" y2="35.56" width="0.1524" layer="91"/>
+<wire x1="132.08" y1="22.86" x2="132.08" y2="38.1" width="0.1524" layer="91"/>
 <pinref part="IC2" gate="G$1" pin="OUTB"/>
 <junction x="129.54" y="22.86"/>
 <pinref part="IC2" gate="G$1" pin="OUTB@1"/>
@@ -16573,18 +16571,17 @@ Source: http://pdf1.alldatasheet.com/datasheet-pdf/view/84563/STMICROELECTRONICS
 <pinref part="IC2" gate="G$1" pin="OUTB@3"/>
 <junction x="129.54" y="15.24"/>
 <pinref part="IC2" gate="G$1" pin="OUTB@4"/>
+<pinref part="SV2" gate="1" pin="6"/>
+<wire x1="132.08" y1="38.1" x2="152.4" y2="38.1" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="N$16" class="0">
 <segment>
 <wire x1="129.54" y1="27.94" x2="129.54" y2="30.48" width="0.1524" layer="91"/>
-<pinref part="SV2" gate="1" pin="6"/>
 <wire x1="129.54" y1="30.48" x2="129.54" y2="33.02" width="0.1524" layer="91"/>
 <wire x1="129.54" y1="33.02" x2="129.54" y2="35.56" width="0.1524" layer="91"/>
 <wire x1="129.54" y1="35.56" x2="129.54" y2="38.1" width="0.1524" layer="91"/>
-<wire x1="129.54" y1="38.1" x2="152.4" y2="38.1" width="0.1524" layer="91"/>
 <pinref part="IC2" gate="G$1" pin="OUTA"/>
-<junction x="129.54" y="38.1"/>
 <pinref part="IC2" gate="G$1" pin="OUTA@1"/>
 <junction x="129.54" y="35.56"/>
 <pinref part="IC2" gate="G$1" pin="OUTA@2"/>
@@ -16592,6 +16589,8 @@ Source: http://pdf1.alldatasheet.com/datasheet-pdf/view/84563/STMICROELECTRONICS
 <pinref part="IC2" gate="G$1" pin="OUTA@3"/>
 <junction x="129.54" y="30.48"/>
 <pinref part="IC2" gate="G$1" pin="OUTA@4"/>
+<pinref part="SV2" gate="1" pin="5"/>
+<wire x1="152.4" y1="35.56" x2="129.54" y2="35.56" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="N$12" class="0">
@@ -16655,13 +16654,18 @@ Source: http://pdf1.alldatasheet.com/datasheet-pdf/view/84563/STMICROELECTRONICS
 </net>
 <net name="N$24" class="0">
 <segment>
-<wire x1="58.42" y1="35.56" x2="58.42" y2="25.4" width="0.1524" layer="91"/>
-<pinref part="U$1" gate="G$1" pin="PD5(XCK/CTS)"/>
-<wire x1="58.42" y1="25.4" x2="30.48" y2="25.4" width="0.1524" layer="91"/>
 <pinref part="R7" gate="G$1" pin="1"/>
-<pinref part="R15" gate="G$1" pin="2"/>
-<wire x1="88.9" y1="35.56" x2="58.42" y2="35.56" width="0.1524" layer="91"/>
+<wire x1="68.58" y1="96.52" x2="68.58" y2="35.56" width="0.1524" layer="91"/>
+<wire x1="68.58" y1="35.56" x2="58.42" y2="35.56" width="0.1524" layer="91"/>
+<wire x1="68.58" y1="96.52" x2="73.66" y2="96.52" width="0.1524" layer="91"/>
+<wire x1="73.66" y1="96.52" x2="76.2" y2="99.06" width="0.1524" layer="91"/>
+<pinref part="R12" gate="G$1" pin="2"/>
+<wire x1="76.2" y1="99.06" x2="88.9" y2="99.06" width="0.1524" layer="91"/>
+<wire x1="58.42" y1="35.56" x2="33.02" y2="35.56" width="0.1524" layer="91"/>
+<wire x1="33.02" y1="35.56" x2="33.02" y2="45.72" width="0.1524" layer="91"/>
 <junction x="58.42" y="35.56"/>
+<pinref part="U$1" gate="G$1" pin="PB4(ADC11)"/>
+<wire x1="33.02" y1="45.72" x2="30.48" y2="45.72" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="N$25" class="0">
@@ -16671,8 +16675,12 @@ Source: http://pdf1.alldatasheet.com/datasheet-pdf/view/84563/STMICROELECTRONICS
 <wire x1="55.88" y1="27.94" x2="30.48" y2="27.94" width="0.1524" layer="91"/>
 <pinref part="U$1" gate="G$1" pin="PD6(T1/ADC9/!OC4D)"/>
 <pinref part="R6" gate="G$1" pin="2"/>
-<pinref part="R13" gate="G$1" pin="2"/>
-<wire x1="88.9" y1="96.52" x2="58.42" y2="96.52" width="0.1524" layer="91"/>
+<pinref part="R15" gate="G$1" pin="2"/>
+<wire x1="88.9" y1="35.56" x2="86.36" y2="35.56" width="0.1524" layer="91"/>
+<wire x1="86.36" y1="35.56" x2="86.36" y2="86.36" width="0.1524" layer="91"/>
+<wire x1="86.36" y1="86.36" x2="66.04" y2="86.36" width="0.1524" layer="91"/>
+<wire x1="66.04" y1="86.36" x2="66.04" y2="96.52" width="0.1524" layer="91"/>
+<wire x1="66.04" y1="96.52" x2="58.42" y2="96.52" width="0.1524" layer="91"/>
 <junction x="58.42" y="96.52"/>
 </segment>
 </net>
@@ -16684,8 +16692,10 @@ Source: http://pdf1.alldatasheet.com/datasheet-pdf/view/84563/STMICROELECTRONICS
 <pinref part="U$1" gate="G$1" pin="PD7(OC4D/ADC10/T0)"/>
 <pinref part="R9" gate="G$1" pin="2"/>
 <wire x1="63.5" y1="93.98" x2="63.5" y2="99.06" width="0.1524" layer="91"/>
-<pinref part="R12" gate="G$1" pin="2"/>
-<wire x1="88.9" y1="99.06" x2="63.5" y2="99.06" width="0.1524" layer="91"/>
+<pinref part="R13" gate="G$1" pin="2"/>
+<wire x1="88.9" y1="96.52" x2="76.2" y2="96.52" width="0.1524" layer="91"/>
+<wire x1="76.2" y1="96.52" x2="73.66" y2="99.06" width="0.1524" layer="91"/>
+<wire x1="73.66" y1="99.06" x2="63.5" y2="99.06" width="0.1524" layer="91"/>
 <junction x="63.5" y="99.06"/>
 </segment>
 </net>
