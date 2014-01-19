@@ -14854,7 +14854,7 @@ Standard 0603 ceramic capacitor, and 0.1" leaded capacitor.</description>
 <parts>
 <part name="C1" library="SparkFun-Passives" deviceset="CAP" device="0805" value="22p"/>
 <part name="C2" library="SparkFun-Passives" deviceset="CAP" device="0805" value="22p"/>
-<part name="C3" library="SparkFun-Passives" deviceset="CAP" device="0805" value="1n"/>
+<part name="C3" library="SparkFun-Passives" deviceset="CAP" device="0805" value="1u"/>
 <part name="C4" library="SparkFun-Passives" deviceset="CAP" device="0805" value="100n"/>
 <part name="C5" library="SparkFun-Passives" deviceset="CAP" device="0805" value="100n"/>
 <part name="P+1" library="supply1" deviceset="+5V" device=""/>
@@ -14916,15 +14916,17 @@ Standard 0603 ceramic capacitor, and 0.1" leaded capacitor.</description>
 <part name="C9" library="rcl" deviceset="CPOL-EU" device="E5-8.5" value="2200u"/>
 <part name="P+18" library="supply1" deviceset="+12V" device=""/>
 <part name="GND14" library="supply1" deviceset="GND" device=""/>
-<part name="JP1" library="SparkFun-Connectors" deviceset="M06" device="SIP"/>
-<part name="JP2" library="SparkFun-Connectors" deviceset="M06" device="SIP"/>
+<part name="JP1" library="SparkFun-Connectors" deviceset="M06" device="SIP" value="m1"/>
+<part name="JP2" library="SparkFun-Connectors" deviceset="M06" device="SIP" value="m2"/>
 <part name="U$2" library="SparkFun-DigitalIC" deviceset="ATMEGA32U4" device="TQFP"/>
 <part name="S2" library="SparkFun-Electromechanical" deviceset="SWITCH-MOMENTARY-2" device="PTH"/>
-<part name="Y1" library="SparkFun-FreqCtrl" deviceset="CRYSTAL" device="HC49US"/>
+<part name="Y1" library="SparkFun-FreqCtrl" deviceset="CRYSTAL" device="HC49US" value="16MHz"/>
 <part name="U$1" library="SparkFun-PowerIC" deviceset="VNH2SP30" device=""/>
 <part name="U$3" library="SparkFun-PowerIC" deviceset="VNH2SP30" device=""/>
 <part name="J1" library="SparkFun-Connectors" deviceset="AVR_SPI_PRG_6" device="NS"/>
 <part name="JP3" library="SparkFun-Connectors" deviceset="USB" device="-SMD-NS"/>
+<part name="R18" library="SparkFun-Passives" deviceset="RESISTOR" device="0805-RES" value="22R"/>
+<part name="R19" library="SparkFun-Passives" deviceset="RESISTOR" device="0805-RES" value="22R"/>
 </parts>
 <sheets>
 <sheet>
@@ -15004,6 +15006,8 @@ Standard 0603 ceramic capacitor, and 0.1" leaded capacitor.</description>
 <instance part="U$3" gate="G$1" x="114.3" y="93.98"/>
 <instance part="J1" gate="G$1" x="38.1" y="104.14"/>
 <instance part="JP3" gate="G$1" x="-63.5" y="50.8" rot="MR0"/>
+<instance part="R18" gate="G$1" x="-30.48" y="58.42"/>
+<instance part="R19" gate="G$1" x="-30.48" y="55.88"/>
 </instances>
 <busses>
 </busses>
@@ -15387,20 +15391,20 @@ Standard 0603 ceramic capacitor, and 0.1" leaded capacitor.</description>
 </net>
 <net name="N$10" class="0">
 <segment>
-<wire x1="-60.96" y1="58.42" x2="-20.32" y2="58.42" width="0.1524" layer="91"/>
 <wire x1="-20.32" y1="58.42" x2="-20.32" y2="53.34" width="0.1524" layer="91"/>
 <pinref part="U$2" gate="G$1" pin="D+"/>
 <wire x1="-20.32" y1="53.34" x2="-10.16" y2="53.34" width="0.1524" layer="91"/>
-<pinref part="JP3" gate="G$1" pin="D+"/>
+<pinref part="R18" gate="G$1" pin="2"/>
+<wire x1="-25.4" y1="58.42" x2="-20.32" y2="58.42" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="N$11" class="0">
 <segment>
-<wire x1="-22.86" y1="55.88" x2="-60.96" y2="55.88" width="0.1524" layer="91"/>
 <wire x1="-22.86" y1="55.88" x2="-22.86" y2="50.8" width="0.1524" layer="91"/>
 <pinref part="U$2" gate="G$1" pin="D-"/>
 <wire x1="-22.86" y1="50.8" x2="-10.16" y2="50.8" width="0.1524" layer="91"/>
-<pinref part="JP3" gate="G$1" pin="D-"/>
+<pinref part="R19" gate="G$1" pin="2"/>
+<wire x1="-22.86" y1="55.88" x2="-25.4" y2="55.88" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="OUTB2" class="0">
@@ -15747,9 +15751,33 @@ Standard 0603 ceramic capacitor, and 0.1" leaded capacitor.</description>
 <wire x1="132.08" y1="114.3" x2="129.54" y2="114.3" width="0.1524" layer="91"/>
 </segment>
 </net>
+<net name="N$14" class="0">
+<segment>
+<pinref part="JP3" gate="G$1" pin="D+"/>
+<pinref part="R18" gate="G$1" pin="1"/>
+<wire x1="-60.96" y1="58.42" x2="-35.56" y2="58.42" width="0.1524" layer="91"/>
+</segment>
+</net>
+<net name="N$15" class="0">
+<segment>
+<pinref part="R19" gate="G$1" pin="1"/>
+<pinref part="JP3" gate="G$1" pin="D-"/>
+<wire x1="-35.56" y1="55.88" x2="-60.96" y2="55.88" width="0.1524" layer="91"/>
+</segment>
+</net>
 </nets>
 </sheet>
 </sheets>
+<errors>
+<approved hash="106,1,25.4,27.94,PB0,,,,,"/>
+<approved hash="106,1,25.4,35.56,PB7,,,,,"/>
+<approved hash="106,1,25.4,50.8,PC6,,,,,"/>
+<approved hash="106,1,25.4,30.48,PC7,,,,,"/>
+<approved hash="106,1,25.4,63.5,PD2,,,,,"/>
+<approved hash="106,1,25.4,60.96,PD3,,,,,"/>
+<approved hash="106,1,25.4,15.24,PD5,,,,,"/>
+<approved hash="106,1,25.4,45.72,PE6,,,,,"/>
+</errors>
 </schematic>
 </drawing>
 </eagle>
