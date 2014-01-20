@@ -113,7 +113,7 @@ void loop() {
   else {
     if(encoder0Pos >= token - 1700 && encoder0Pos <= token + 1700) pos = 1;
     else if(encoder0Pos >= drive - 1700 && encoder0Pos <= drive + 7500) pos = 2;
-    else if(encoder0Pos >= top) pos = 3;
+    else if(encoder0Pos >= top && encoder0Pos <= top + 7000) pos = 3;
     else pos = 4;
   }
 }
