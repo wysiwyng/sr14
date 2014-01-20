@@ -138,6 +138,7 @@
 <hole x="53.0225" y="1.5875" drill="2"/>
 <hole x="53.0225" y="48.26" drill="2"/>
 <hole x="1.5875" y="48.26" drill="2"/>
+<text x="51.1175" y="47.625" size="1.016" layer="26" font="vector" rot="MR0">(c) 2014 K. Emrich, J. Veeh</text>
 </plain>
 <libraries>
 <library name="rcl">
