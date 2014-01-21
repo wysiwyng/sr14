@@ -14927,6 +14927,9 @@ Standard 0603 ceramic capacitor, and 0.1" leaded capacitor.</description>
 <part name="JP3" library="SparkFun-Connectors" deviceset="USB" device="-SMD-NS"/>
 <part name="R18" library="SparkFun-Passives" deviceset="RESISTOR" device="0805-RES" value="22R"/>
 <part name="R19" library="SparkFun-Passives" deviceset="RESISTOR" device="0805-RES" value="22R"/>
+<part name="C10" library="SparkFun-Passives" deviceset="CAP" device="0805" value="100n"/>
+<part name="P+19" library="supply1" deviceset="+5V" device=""/>
+<part name="GND15" library="supply1" deviceset="GND" device=""/>
 </parts>
 <sheets>
 <sheet>
@@ -15008,6 +15011,9 @@ Standard 0603 ceramic capacitor, and 0.1" leaded capacitor.</description>
 <instance part="JP3" gate="G$1" x="-63.5" y="50.8" rot="MR0"/>
 <instance part="R18" gate="G$1" x="-30.48" y="58.42"/>
 <instance part="R19" gate="G$1" x="-30.48" y="55.88"/>
+<instance part="C10" gate="G$1" x="-48.26" y="22.86"/>
+<instance part="P+19" gate="1" x="-48.26" y="30.48"/>
+<instance part="GND15" gate="1" x="-48.26" y="17.78"/>
 </instances>
 <busses>
 </busses>
@@ -15096,6 +15102,10 @@ Standard 0603 ceramic capacitor, and 0.1" leaded capacitor.</description>
 <segment>
 <pinref part="R10" gate="G$1" pin="2"/>
 <pinref part="P+15" gate="1" pin="+5V"/>
+</segment>
+<segment>
+<pinref part="C10" gate="G$1" pin="1"/>
+<pinref part="P+19" gate="1" pin="+5V"/>
 </segment>
 </net>
 <net name="GND" class="0">
@@ -15242,6 +15252,10 @@ Standard 0603 ceramic capacitor, and 0.1" leaded capacitor.</description>
 <junction x="99.06" y="10.16"/>
 <pinref part="GND5" gate="1" pin="GND"/>
 <wire x1="99.06" y1="0" x2="104.14" y2="0" width="0.1524" layer="91"/>
+</segment>
+<segment>
+<pinref part="C10" gate="G$1" pin="2"/>
+<pinref part="GND15" gate="1" pin="GND"/>
 </segment>
 </net>
 <net name="N$2" class="0">
