@@ -7,20 +7,20 @@
 
 
 #define dir0A 12    //PD6
-#define dir0A_on (PORTD |= (1 << PD6))
-#define dir0A_off (PORTD &= ~(1 << PD6))
+#define dir0A_on (PORTD |= (1 << 6))
+#define dir0A_off (PORTD &= ~(1 << 6))
 
 #define dir0B 4     //PD4
-#define dir0B_on (PORTD |= (1 << PD4))
-#define dir0B_off (PORTD &= ~(1 << PD4))
+#define dir0B_on (PORTD |= (1 << 4))
+#define dir0B_off (PORTD &= ~(1 << 4))
 
 #define dir1A 8     //PB4
-#define dir1A_on (PORTB |= (1 << PB4))
-#define dir1A_off (PORTB &= ~(1 << PB4))
+#define dir1A_on (PORTB |= (1 << 4))
+#define dir1A_off (PORTB &= ~(1 << 4))
 
 #define dir1B 6     //PD7
-#define dir0A_on (PORTD |= (1 << PD7))
-#define dir0A_off (PORTD &= ~(1 << PD7))
+#define dir1B_on (PORTD |= (1 << 7))
+#define dir1B_off (PORTD &= ~(1 << 7))
 
 #define pwm0 9
 #define pwm1 10
@@ -63,17 +63,17 @@ void setup()
   motor1float();
 
   Serial.begin(115200); //Initialize the serial port
-
+  
   attachInterrupt(0, wheelSpeed0, CHANGE);
   attachInterrupt(1, wheelSpeed1, CHANGE);
 
-  TIMSK1 |= (1<<TOIE1); // Enable Timer1 overflow interrupt at 16MHz = 16 000 000 / 2^16 = 244Hz
+  TIMSK3 |= (1<<TOIE1); // Enable Timer1 overflow interrupt at 16MHz = 16 000 000 / 2^16 = 244Hz
 
   byte lamps[4] = {dir0A,dir0B,dir1A,dir1B};
   byte j = 0;
   boolean temp = LOW;
 
-  while(Serial.read() != 's')
+  while(!Serial)
   {
     digitalWrite(lamps[j],temp);
     if(j<4) j++;
@@ -84,7 +84,7 @@ void setup()
     delay(100);
   }
   
-  Serial.write(104);
+  //Serial.write(104);
 
   motor0float();
   motor1float();
@@ -191,57 +191,73 @@ void loop()
 
 void motor0fwd()
 {
-  digitalWrite(dir0A,HIGH);
-  digitalWrite(dir0B,LOW);
+  dir0A_off;
+  dir0B_on;
+  //digitalWrite(dir0A,HIGH);
+  //digitalWrite(dir0B,LOW);
 }
 
 void motor0rev()
 {
-  digitalWrite(dir0A,LOW);
-  digitalWrite(dir0B,HIGH);
+  dir0A_on;
+  dir0B_off;  
+  //digitalWrite(dir0A,LOW);
+  //digitalWrite(dir0B,HIGH);
 }
 
 void motor0stop()
 {
+  dir0A_off;
+  dir0B_off;
   digitalWrite(pwm0,HIGH);
-  digitalWrite(dir0A,LOW);
-  digitalWrite(dir0B,LOW);
+  //digitalWrite(dir0A,LOW);
+  //digitalWrite(dir0B,LOW);
 }
 
 void motor0float()
 {
+  dir0A_off;
+  dir0B_off;
   digitalWrite(pwm0,LOW);
-  digitalWrite(dir0A,LOW);
-  digitalWrite(dir0B,LOW);
+  //digitalWrite(dir0A,LOW);
+  //digitalWrite(dir0B,LOW);
 }
 
 void motor1fwd()
 {
-  digitalWrite(dir1A,HIGH);
-  digitalWrite(dir1B,LOW);
+  dir1A_off;
+  dir1B_on;
+  //digitalWrite(dir1A,HIGH);
+  //digitalWrite(dir1B,LOW);
 }
 
 void motor1rev()
 {
-  digitalWrite(dir1A,LOW);
-  digitalWrite(dir1B,HIGH);
+  dir1A_on;
+  dir1B_off;
+  //digitalWrite(dir1A,LOW);
+  //digitalWrite(dir1B,HIGH);
 }
 
 void motor1stop()
 {
+  dir1A_off;
+  dir1B_off;
   digitalWrite(pwm1,HIGH);
-  digitalWrite(dir1A,LOW);
-  digitalWrite(dir1B,LOW);
+  //digitalWrite(dir1A,LOW);
+  //digitalWrite(dir1B,LOW);
 }
 
 void motor1float()
 {
+  dir1A_off;
+  dir1B_off;
   digitalWrite(pwm1,LOW);
-  digitalWrite(dir1A,LOW);
-  digitalWrite(dir1B,LOW);
+  //digitalWrite(dir1A,LOW);
+  //digitalWrite(dir1B,LOW);
 }
 
-ISR(TIMER1_OVF_vect) //timer interupt routine
+ISR(TIMER3_OVF_vect) //timer interupt routine
 {
   overflow++;
   if(overflow>=10)
