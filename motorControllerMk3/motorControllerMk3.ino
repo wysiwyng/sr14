@@ -1,3 +1,7 @@
+#include "wiring_private.h"
+#include "pins_arduino.h"
+
+
 #define pi 3.14159265
 
 
@@ -48,7 +52,10 @@ int error = 0;
 int speed = 0; // set the speed of which the vechicle should move
 int output = 0;
 
+volatile int faultCount = 0;
+
 volatile boolean completed = true;
+volatile boolean fault = false;
 
 void setup()
 {
@@ -58,18 +65,19 @@ void setup()
   pinMode(dir0B, OUTPUT);
   pinMode(dir1A, OUTPUT);
   pinMode(dir1B, OUTPUT);
-  
+
   motor0float();
   motor1float();
 
   Serial.begin(115200); //Initialize the serial port
-  
+
   attachInterrupt(0, wheelSpeed0, CHANGE);
   attachInterrupt(1, wheelSpeed1, CHANGE);
 
   TIMSK3 |= (1<<TOIE1); // Enable Timer1 overflow interrupt at 16MHz = 16 000 000 / 2^16 = 244Hz
 
-  byte lamps[4] = {dir0A,dir0B,dir1A,dir1B};
+  byte lamps[4] = {
+    dir0A,dir0B,dir1A,dir1B  };
   byte j = 0;
   boolean temp = LOW;
 
@@ -83,11 +91,11 @@ void setup()
     }
     delay(100);
   }
-  
+
   //Serial.write(104);
 
-  motor0float();
-  motor1float();
+  motor0stop();
+  motor1stop();
 }
 
 void setParams(uint8_t spd = 0, int8_t dir = 0, word distance = 0)
@@ -107,12 +115,16 @@ void checkRev()
   noInterrupts();
   if(c0 >= (dist*cpcm) || c1 >= (dist*cpcm))
   {
-    motor0stop();
-    motor1stop();
+    cbi(TCCR1A, COM1A1);
+    cbi(TCCR1A, COM1B1);
+    PORTD &= ~((1 << 4) | (1 << 6) | (1 << 7));
+    PORTB &= ~(1 << 4);
+    PORTB |= ((1 << 5) | (1 << 6));
     speed = 0;
     setPoint = 0;
     dist = 0;
     completed = true;
+    fault = false;
     c0 = 0;
     c1 = 0;
   }
@@ -140,46 +152,58 @@ void loop()
 
       if(brake)
       {
-        motor0stop();
-        motor1stop();
+        cbi(TCCR1A, COM1A1);
+        cbi(TCCR1A, COM1B1);
+        PORTD &= ~((1 << 4) | (1 << 6) | (1 << 7));
+        PORTB &= ~(1 << 4);
+        PORTB |= ((1 << 5) | (1 << 6));
         setParams();
       }
       else if(_speed == 0)
       {
-        motor0float();
-        motor1float();
+        cbi(TCCR1A, COM1A1);
+        cbi(TCCR1A, COM1B1);
+        PORTD &= ~((1 << 4) | (1 << 6) | (1 << 7));
+        PORTB &= ~((1 << 4) | (1 << 5) | (1 << 6));
         setParams();
       }
       else if(turn && f)
       {
-        motor0fwd();
-        motor1rev();
+        PORTD |= (1 << 4);
+        PORTD &= ~((1 << 6) | (1 << 7));
+        PORTB |= (1 << 4);
         setParams(_speed, 0, _distance * cmpd);
       }
       else if(turn)
       {
-        motor0rev();
-        motor1fwd();
+        PORTD &= ~(1 << 4);
+        PORTD |= ((1 << 6) | (1 << 7));
+        PORTB &= ~(1 << 4);
         setParams(_speed, 0, _distance * cmpd);
       }
       else if(f)
       {
-        motor0fwd();
-        motor1fwd();
+        PORTD &= ~(1 << 6);
+        PORTD |= ((1 << 4) | (1 << 7));
+        PORTB &= ~(1 << 4);
         setParams(_speed, _direction, _distance);
       }
       else if (!f)
       {
-        motor0rev();
-        motor1rev();
+        PORTD |= (1 << 6);
+        PORTD &= ~((1 << 4) | (1 << 7));
+        PORTB |= (1 << 4);
         setParams(_speed, _direction, _distance);
       }
 
       if(_distance > 0) completed = false;
+      fault = false;
 
-      while(!completed) {}
+      while(!completed) {
+      }
 
       Serial.print('$');
+      if(fault) bitClear(instruction, 3);
       Serial.write(instruction);
       Serial.write(_speed);
       Serial.write(_direction);
@@ -189,29 +213,11 @@ void loop()
   }
 }
 
-void motor0fwd()
-{
-  dir0A_off;
-  dir0B_on;
-  //digitalWrite(dir0A,HIGH);
-  //digitalWrite(dir0B,LOW);
-}
-
-void motor0rev()
-{
-  dir0A_on;
-  dir0B_off;  
-  //digitalWrite(dir0A,LOW);
-  //digitalWrite(dir0B,HIGH);
-}
-
 void motor0stop()
 {
   dir0A_off;
   dir0B_off;
   digitalWrite(pwm0,HIGH);
-  //digitalWrite(dir0A,LOW);
-  //digitalWrite(dir0B,LOW);
 }
 
 void motor0float()
@@ -219,24 +225,6 @@ void motor0float()
   dir0A_off;
   dir0B_off;
   digitalWrite(pwm0,LOW);
-  //digitalWrite(dir0A,LOW);
-  //digitalWrite(dir0B,LOW);
-}
-
-void motor1fwd()
-{
-  dir1A_off;
-  dir1B_on;
-  //digitalWrite(dir1A,HIGH);
-  //digitalWrite(dir1B,LOW);
-}
-
-void motor1rev()
-{
-  dir1A_on;
-  dir1B_off;
-  //digitalWrite(dir1A,LOW);
-  //digitalWrite(dir1B,HIGH);
 }
 
 void motor1stop()
@@ -244,8 +232,6 @@ void motor1stop()
   dir1A_off;
   dir1B_off;
   digitalWrite(pwm1,HIGH);
-  //digitalWrite(dir1A,LOW);
-  //digitalWrite(dir1B,LOW);
 }
 
 void motor1float()
@@ -253,8 +239,6 @@ void motor1float()
   dir1A_off;
   dir1B_off;
   digitalWrite(pwm1,LOW);
-  //digitalWrite(dir1A,LOW);
-  //digitalWrite(dir1B,LOW);
 }
 
 ISR(TIMER3_OVF_vect) //timer interupt routine
@@ -262,14 +246,36 @@ ISR(TIMER3_OVF_vect) //timer interupt routine
   overflow++;
   if(overflow>=10)
   {
-    pReg(duration0, duration1);
-    checkRev();
-    duration0=0;
-    duration1=0;
-    overflow=0;
+    if((duration0 < 15 || duration1 < 15) && speed > 0)
+    {
+      faultCount++;
+    }
+    if(faultCount > 7)
+    {
+      cbi(TCCR1A, COM1A1);
+      cbi(TCCR1A, COM1B1);
+      PORTD &= ~((1 << 4) | (1 << 6) | (1 << 7));
+      PORTB &= ~(1 << 4);
+      PORTB |= ((1 << 5) | (1 << 6));
+      speed = 0;
+      setPoint = 0;
+      dist = 0;
+      completed = true;
+      fault = true;
+      c0 = 0;
+      c1 = 0;
+      faultCount = 0;
+    }
+    else
+    {
+      pReg(duration0, duration1);
+      checkRev();
+      duration0=0;
+      duration1=0;
+      overflow=0;
+    }
   }
 }
-
 
 void pReg(int speedL, int speedR)
 {
@@ -310,3 +316,4 @@ void wheelSpeed1()
   duration1++;
   c1++;
 }
+
