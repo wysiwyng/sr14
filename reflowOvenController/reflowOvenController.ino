@@ -404,6 +404,7 @@ void loop()
       Serial.println(output);
     // Clear LCD
     //lcd.clear();
+    lcd.setCursor(0, 0);
     // Print current system state
     lcd.print(lcdMessagesReflowStatus[reflowState]);
     lcd.print("     ");
