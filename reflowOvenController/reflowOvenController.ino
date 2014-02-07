@@ -162,6 +162,7 @@ typedef enum DEBOUNCE_STATE_PRE
 debounceStatePre_t;
 
 // ***** CONSTANTS *****
+#define TEMPERATURE_PRE 60
 #define TEMPERATURE_ROOM 70
 #define TEMPERATURE_SOAK_MIN 150
 #define TEMPERATURE_SOAK_MAX 200
@@ -174,7 +175,11 @@ debounceStatePre_t;
 
 // ***** PID PARAMETERS *****
 // ***** PRE-HEAT STAGE *****
-#define PID_KP_PREHEAT 100
+#define PID_KP_ROOM 40
+#define PID_KI_ROOM 0.025
+#define PID_KD_ROOM 20
+
+#define PID_KP_PREHEAT 70
 #define PID_KI_PREHEAT 0.025
 #define PID_KD_PREHEAT 20
 // ***** SOAKING STAGE *****
@@ -195,7 +200,7 @@ const char* lcdMessagesReflowStatus[] = {
   "Reflow",
   "Cool",
   "Complete",
-  "Wait,hot",
+  "Wait, hot",
   "Error"
 };
 
@@ -205,7 +210,8 @@ unsigned char degree[8]  = {
 
 // ***** PIN ASSIGNMENT *****
 #ifdef	USE_MAX31855
-int ssrPin = 5;
+int ssrPin1 = A4;
+int ssrPin2 = A5;
 int thermocoupleSOPin = A3;
 int thermocoupleCSPin = A2;
 int thermocoupleCLKPin = A1;
@@ -216,7 +222,7 @@ int lcdD5Pin = 5;
 int lcdD6Pin = 6;
 int lcdD7Pin = 7;
 int ledRedPin = 13;
-int buzzerPin = 6;
+int buzzerPin = 12;
 int switchPin = A0;
 #else
 int ssrPin = 5;
@@ -283,8 +289,10 @@ thermocoupleSOPin);
 void setup()
 {
   // SSR pin initialization to ensure reflow oven is off
-  digitalWrite(ssrPin, LOW);
-  pinMode(ssrPin, OUTPUT);
+  digitalWrite(ssrPin1, LOW);
+  digitalWrite(ssrPin2, LOW);
+  pinMode(ssrPin1, OUTPUT);
+  pinMode(ssrPin2, OUTPUT);
 
   // Buzzer pin initialization to ensure annoying buzzer is off
   digitalWrite(buzzerPin, LOW);
@@ -304,12 +312,12 @@ void setup()
   Serial.begin(57600);
   // Start-up splash
   digitalWrite(buzzerPin, HIGH);
-  lcd.begin(8, 2);
+  lcd.begin(16, 2);
   lcd.createChar(0, degree);
   lcd.clear();
-  Serial.print("Reflow");
+  lcd.print("Reflow");
   lcd.setCursor(0, 1);
-  Serial.print("Oven 1.2");
+  lcd.print("Oven 1.2");
   digitalWrite(buzzerPin, LOW);
   delay(2500);
   lcd.clear();
@@ -333,8 +341,8 @@ void setup()
         // Turn the PID on
         reflowOvenPID.SetMode(AUTOMATIC);
   reflowState = REFLOW_STATE_IDLE; 
-  reflowOvenPID.SetTunings(PID_KP_SOAK, PID_KI_SOAK, PID_KD_SOAK);
-  setpoint = TEMPERATURE_ROOM - 20;
+  reflowOvenPID.SetTunings(PID_KP_ROOM, PID_KI_ROOM, PID_KD_ROOM);
+  setpoint = TEMPERATURE_PRE;
 }
 
 void loop()
@@ -395,9 +403,10 @@ void loop()
       Serial.print(" ");
       Serial.println(output);
     // Clear LCD
-    lcd.clear();
+    //lcd.clear();
     // Print current system state
-    Serial.print(lcdMessagesReflowStatus[reflowState]);
+    lcd.print(lcdMessagesReflowStatus[reflowState]);
+    lcd.print("     ");
     // Move the cursor to the 2 line
     lcd.setCursor(0, 1);
 
@@ -405,21 +414,24 @@ void loop()
     if (reflowState == REFLOW_STATE_ERROR)
     {
       // No thermocouple wire connected
-      Serial.print("TC Error!");
+      lcd.print("TC Error!");
     }
     else
     {
       // Print current temperature
-      Serial.print(input);
-
-#if ARDUINO >= 100
-      // Print degree Celsius symbol
-      lcd.write((uint8_t)0);
-#else
-      // Print degree Celsius symbol
-      Serial.print(0, BYTE);
-#endif
-      Serial.print("C ");
+      lcd.print(input);
+      
+      lcd.print("  ");
+      
+      lcd.print(setpoint);
+      
+      lcd.print("    ");
+      
+      lcd.setCursor(9, 0);
+      
+      lcd.print(output);
+      
+      lcd.print("   ");
     }
   }
 
@@ -539,8 +551,8 @@ void loop()
 #endif
       // Reflow process ended
       reflowState = REFLOW_STATE_IDLE; 
-      reflowOvenPID.SetTunings(PID_KP_SOAK, PID_KI_SOAK, PID_KD_SOAK);
-      setpoint = TEMPERATURE_ROOM - 20;
+      reflowOvenPID.SetTunings(PID_KP_ROOM, PID_KI_ROOM, PID_KD_ROOM);
+      setpoint = TEMPERATURE_PRE;
     }
     break;
 
@@ -584,6 +596,8 @@ void loop()
       reflowStatus = REFLOW_STATUS_OFF;
       // Reinitialize state machine
       reflowState = REFLOW_STATE_IDLE;
+      reflowOvenPID.SetTunings(PID_KP_ROOM, PID_KI_ROOM, PID_KD_ROOM);
+      setpoint = TEMPERATURE_PRE;
     }
   } 
   // Simple switch debounce state machine (for switch #1 (both analog & digital
@@ -657,13 +671,22 @@ void loop()
       // Time to shift the Relay Window
       windowStartTime += windowSize;
     }
-    if(output > (now - windowStartTime)) digitalWrite(ssrPin, HIGH);
-    else digitalWrite(ssrPin, LOW);   
+    if(output > (now - windowStartTime)) 
+    {
+      digitalWrite(ssrPin1, HIGH);
+      digitalWrite(ssrPin2, HIGH);
+    }
+    else
+    { 
+      digitalWrite(ssrPin1, LOW);
+      digitalWrite(ssrPin2, LOW);
+    }
   }
   // Reflow oven process is off, ensure oven is off
   else 
   {
-    digitalWrite(ssrPin, LOW);
+    digitalWrite(ssrPin1, LOW);
+    digitalWrite(ssrPin2, LOW);
   }
 }
 
