@@ -56,6 +56,7 @@ volatile int faultCount = 0;
 
 volatile boolean completed = true;
 volatile boolean fault = false;
+volatile boolean preFault = false;
 
 void setup()
 {
@@ -248,7 +249,8 @@ ISR(TIMER3_OVF_vect) //timer interupt routine
   {
     if((duration0 < 15 || duration1 < 15) && speed > 0)
     {
-      faultCount++;
+      if(preFault) faultCount++;
+      else preFault = true;
     }
     if(faultCount > 7)
     {
@@ -268,6 +270,7 @@ ISR(TIMER3_OVF_vect) //timer interupt routine
     }
     else
     {
+      preFault = false;
       pReg(duration0, duration1);
       checkRev();
       duration0=0;
