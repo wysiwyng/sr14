@@ -216,3 +216,16 @@ pip-log.txt
 
 *.s#*
 *.b#*
+motorControllerMk3/motorControllerMk3.gpi
+motorControllerMk3/motorControllerMk3.GBL
+motorControllerMk3/motorControllerMk3.GBO
+motorControllerMk3/motorControllerMk3.GBP
+motorControllerMk3/motorControllerMk3.GBS
+motorControllerMk3/motorControllerMk3.GML
+motorControllerMk3/motorControllerMk3.GTL
+motorControllerMk3/motorControllerMk3.GTO
+motorControllerMk3/motorControllerMk3.GTP
+motorControllerMk3/motorControllerMk3.GTS
+motorControllerMk3/motorControllerMk3.TXT
+motorControllerMk3/motorControllerMk3.dri
+motorControllerMk3/motorControllerMk3.zip
