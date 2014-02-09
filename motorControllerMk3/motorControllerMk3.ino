@@ -38,6 +38,9 @@
 #define cpcm cpr/(wheelDiameter*pi)
 #define cmpd (wheelDistance*pi)/360
 
+#define maxFaults 20
+#define minSpeed 5
+
 word c0;
 word c1;
 
@@ -66,13 +69,13 @@ void timer3_int()
   overflow++;
   if(overflow>=10)
   {
-    if((duration0 < 5 || duration1 < 5) && speed > 0)
+    if((duration0 < minSpeed || duration1 < minSpeed) && speed > 0)
     {
       if(preFault) faultCount++;
       else preFault = true;
     }
     else preFault = false;
-    if(faultCount > 20)
+    if(faultCount > maxFaults)
     {
       cbi(TCCR1A, COM1A1);
       cbi(TCCR1A, COM1B1);
