@@ -127,7 +127,7 @@ void setup()
   Timer3.attachInterrupt(timer3_int);
   Timer3.start();
   byte lamps[4] = {
-    dir0A,dir0B,dir1A,dir1B    };
+    dir0A,dir0B,dir1A,dir1B      };
   boolean temp = LOW;
 
   for(int i = 0; i < 4; i++){
@@ -162,10 +162,10 @@ void checkRev()
   noInterrupts();
   if(c0 >= (dist*cpcm) || c1 >= (dist*cpcm))
   {
-    cbi(TCCR1A, COM1A1);
-    cbi(TCCR1A, COM1B1);
     PORTD &= ~((1 << 4) | (1 << 6) | (1 << 7));
     PORTB &= ~(1 << 4);
+    cbi(TCCR1A, COM1A1);
+    cbi(TCCR1A, COM1B1);
     PORTB |= ((1 << 5) | (1 << 6));
     speed = 0;
     setPoint = 0;
@@ -199,9 +199,9 @@ void loop()
     {
       switch(rec)
       {
-        case 'v':
-          Serial.write(VERSION);
-          break;
+      case 'v':
+        Serial.write(VERSION);
+        break;
       }
     }
     if(counter == 6)
@@ -228,19 +228,20 @@ void loop()
 
       if(brake)
       {
-        cbi(TCCR1A, COM1A1);
-        cbi(TCCR1A, COM1B1);
         PORTD &= ~((1 << 4) | (1 << 6) | (1 << 7));
         PORTB &= ~(1 << 4);
+        cbi(TCCR1A, COM1A1);
+        cbi(TCCR1A, COM1B1);
         PORTB |= ((1 << 5) | (1 << 6));
         setParams();
       }
       else if(_speed == 0)
       {
+        PORTD &= ~((1 << 4) | (1 << 6) | (1 << 7));
+        PORTB &= ~(1 << 4);
         cbi(TCCR1A, COM1A1);
         cbi(TCCR1A, COM1B1);
-        PORTD &= ~((1 << 4) | (1 << 6) | (1 << 7));
-        PORTB &= ~((1 << 4) | (1 << 5) | (1 << 6));
+        PORTB &= ~((1 << 5) | (1 << 6));
         setParams();
       }
       else if(turn && f)
@@ -249,6 +250,8 @@ void loop()
         PORTD &= ~((1 << 6) | (1 << 7));
         PORTB |= (1 << 4);
         setParams(_speed, 0, _distance * cmpd);
+        sbi(TCCR1A, COM1A1);
+        sbi(TCCR1A, COM1B1);
       }
       else if(turn)
       {
@@ -256,6 +259,8 @@ void loop()
         PORTD |= ((1 << 6) | (1 << 7));
         PORTB &= ~(1 << 4);
         setParams(_speed, 0, _distance * cmpd);
+        sbi(TCCR1A, COM1A1);
+        sbi(TCCR1A, COM1B1);
       }
       else if(f)
       {
@@ -263,6 +268,8 @@ void loop()
         PORTD |= ((1 << 4) | (1 << 7));
         PORTB &= ~(1 << 4);
         setParams(_speed, _direction, _distance);
+        sbi(TCCR1A, COM1A1);
+        sbi(TCCR1A, COM1B1);
       }
       else if (!f)
       {
@@ -270,6 +277,8 @@ void loop()
         PORTD &= ~((1 << 4) | (1 << 7));
         PORTB |= (1 << 4);
         setParams(_speed, _direction, _distance);
+        sbi(TCCR1A, COM1A1);
+        sbi(TCCR1A, COM1B1);
       }
 
       if(_distance > 0) completed = false;
@@ -335,15 +344,18 @@ void pReg(int speedL, int speedR)
   if(speed - output < 0) output = speed;
   if(speed + output < 0) output = -speed;
   //Serial.println(output,DEC);
+  int temp;
   if(output >= 0) // its turning left of the setpoint, reduce pwm0 (right motor) pin 10 = OCR1B pin 11 = OCR2A
   {
-    analogWrite(pwm1, speed);
-    analogWrite(pwm0, (speed-output)); // Subtract the error value multiplied by Kp from pwm0
+    temp = speed - output;
+    OCR1B = speed;
+    OCR1A = temp; // Subtract the error value multiplied by Kp from pwm0
   }
   if(output < 0) // turning right of our setpoint, reduce pwm1
   {
-    analogWrite(pwm1, (speed+output)); // This time we add the error since its negative
-    analogWrite(pwm0, speed);
+    temp = speed + output;
+    OCR1B = temp;
+    OCR1A = speed;
   }
   interrupts(); //Enable interrupts again
 }
@@ -359,5 +371,6 @@ void wheelSpeed1()
   duration1++;
   c1++;
 }
+
 
 
