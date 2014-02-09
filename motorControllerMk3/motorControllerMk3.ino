@@ -34,7 +34,7 @@
 #define pwm1 PIN_B6
 
 #define wheelDiameter 11
-#define wheelDistance 45
+#define wheelDistance 46
 #define cpr 1600
 
 #define cpcm cpr/(wheelDiameter*pi)
