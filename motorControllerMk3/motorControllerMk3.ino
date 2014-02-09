@@ -1,33 +1,35 @@
 #include "wiring_private.h"
 #include "pins_arduino.h"
+#include <TimerThree.h>
 
+#define debug
 
 #define pi 3.14159265
 
 
-#define encoder0pinA 3
+#define encoder0pinA PIN_D0
 
-#define encoder1pinA 2
+#define encoder1pinA PIN_D1
 
 
-#define dir0A 12    //PD6
+#define dir0A PIN_D6    //PD6
 #define dir0A_on (PORTD |= (1 << 6))
 #define dir0A_off (PORTD &= ~(1 << 6))
 
-#define dir0B 4     //PD4
+#define dir0B PIN_D4     //PD4
 #define dir0B_on (PORTD |= (1 << 4))
 #define dir0B_off (PORTD &= ~(1 << 4))
 
-#define dir1A 8     //PB4
+#define dir1A PIN_B4     //PB4
 #define dir1A_on (PORTB |= (1 << 4))
 #define dir1A_off (PORTB &= ~(1 << 4))
 
-#define dir1B 6     //PD7
+#define dir1B PIN_D7     //PD7
 #define dir1B_on (PORTD |= (1 << 7))
 #define dir1B_off (PORTD &= ~(1 << 7))
 
-#define pwm0 9
-#define pwm1 10
+#define pwm0 PIN_B5
+#define pwm1 PIN_B6
 
 #define wheelDiameter 9
 #define wheelDistance 41.5
@@ -58,6 +60,45 @@ volatile boolean completed = true;
 volatile boolean fault = false;
 volatile boolean preFault = false;
 
+//ISR(TIMER3_OVF_vect) //timer interupt routine
+void timer3_int()
+{
+  overflow++;
+  if(overflow>=10)
+  {
+    if((duration0 < 5 || duration1 < 5) && speed > 0)
+    {
+      if(preFault) faultCount++;
+      else preFault = true;
+    }
+    else preFault = false;
+    if(faultCount > 20)
+    {
+      cbi(TCCR1A, COM1A1);
+      cbi(TCCR1A, COM1B1);
+      PORTD &= ~((1 << 4) | (1 << 6) | (1 << 7));
+      PORTB &= ~(1 << 4);
+      PORTB |= ((1 << 5) | (1 << 6));
+      speed = 0;
+      setPoint = 0;
+      dist = 0;
+      completed = true;
+      fault = true;
+      c0 = 0;
+      c1 = 0;
+      faultCount = 0;
+    }
+    else
+    {
+      pReg(duration0, duration1);
+      checkRev();
+      duration0=0;
+      duration1=0;
+      overflow=0;
+    }
+  }
+}
+
 void setup()
 {
   pinMode(pwm0, OUTPUT);
@@ -71,30 +112,30 @@ void setup()
   motor1float();
 
   Serial.begin(115200); //Initialize the serial port
-
+#ifdef debug
+  Serial1.begin(115200);
+#endif
   attachInterrupt(0, wheelSpeed0, CHANGE);
   attachInterrupt(1, wheelSpeed1, CHANGE);
 
-  TIMSK3 |= (1<<TOIE1); // Enable Timer1 overflow interrupt at 16MHz = 16 000 000 / 2^16 = 244Hz
-
+  Timer3.initialize(2000);
+  Timer3.attachInterrupt(timer3_int);
+  Timer3.start();
   byte lamps[4] = {
-    dir0A,dir0B,dir1A,dir1B  };
-  byte j = 0;
+    dir0A,dir0B,dir1A,dir1B    };
   boolean temp = LOW;
 
-  while(!Serial)
-  {
-    digitalWrite(lamps[j],temp);
-    if(j<4) j++;
-    else {
-      j=0;
-      temp = !temp;
-    }
+  for(int i = 0; i < 4; i++){
+    digitalWrite(lamps[i], 1);
     delay(100);
   }
-
-  //Serial.write(104);
-
+  for(int i = 0; i < 4; i++){
+    digitalWrite(lamps[i], 0);
+    delay(100);
+  }  
+#ifdef debug
+  Serial1.println("ready");
+#endif
   motor0stop();
   motor1stop();
 }
@@ -132,20 +173,40 @@ void checkRev()
   interrupts();
 }
 
+byte counter = 0;
+byte vars[5] = {
+  0, 0, 0, 0, 0};
+
 void loop()
 {
-  if(Serial.available()>5 && Serial.read()=='$')
+  if(Serial.available())
   {
-    byte instruction = Serial.read();
-    if(bitRead(instruction, 7) == 1 && bitRead(instruction, 6) == 1 && bitRead(instruction, 5) == 0 && bitRead(instruction, 4) == 1 && bitRead(instruction, 3) == 1)
+    byte rec = Serial.read();
+#ifdef debug
+    Serial1.print("in byte: ");
+    Serial1.println(rec);
+    Serial1.print("count: ");
+    Serial1.println(counter);
+#endif
+    if(counter > 0 || rec == 36) counter++;
+    if(counter > 1) vars[counter - 2] = rec;
+    if(counter == 6)
     {
-      uint8_t _speed = Serial.read();
-      int8_t _direction = Serial.read();
-      uint16_t _distance = word(Serial.read(), Serial.read());
+      counter = 0;
+      byte instruction = vars[0];
+      uint8_t _speed = vars[1];
+      int8_t _direction = vars[2];
+      uint16_t _distance = word(vars[3], vars[4]);
       boolean f = bitRead(instruction,2);
       boolean turn = bitRead(instruction,1);
-      boolean brake = bitRead(instruction,0);
-
+      boolean brake = bitRead(instruction,0); 
+#ifdef debug
+      Serial1.println("complete command received");
+      Serial1.println(instruction);
+      Serial1.println(_speed);
+      Serial1.println(_direction);
+      Serial1.println(_distance);
+#endif
       if(_distance > 0 && _distance < 5)
       {
         _distance = 5;
@@ -199,10 +260,13 @@ void loop()
 
       if(_distance > 0) completed = false;
       fault = false;
-
-      while(!completed) {
-      }
-
+#ifdef debug
+      Serial1.println("waiting for completion");
+#endif
+      while(!completed) ;
+#ifdef debug
+      Serial1.println("completed");
+#endif
       Serial.print('$');
       if(fault) bitClear(instruction, 3);
       Serial.write(instruction);
@@ -240,44 +304,6 @@ void motor1float()
   dir1A_off;
   dir1B_off;
   digitalWrite(pwm1,LOW);
-}
-
-ISR(TIMER3_OVF_vect) //timer interupt routine
-{
-  overflow++;
-  if(overflow>=10)
-  {
-    if((duration0 < 15 || duration1 < 15) && speed > 0)
-    {
-      if(preFault) faultCount++;
-      else preFault = true;
-    }
-    if(faultCount > 7)
-    {
-      cbi(TCCR1A, COM1A1);
-      cbi(TCCR1A, COM1B1);
-      PORTD &= ~((1 << 4) | (1 << 6) | (1 << 7));
-      PORTB &= ~(1 << 4);
-      PORTB |= ((1 << 5) | (1 << 6));
-      speed = 0;
-      setPoint = 0;
-      dist = 0;
-      completed = true;
-      fault = true;
-      c0 = 0;
-      c1 = 0;
-      faultCount = 0;
-    }
-    else
-    {
-      preFault = false;
-      pReg(duration0, duration1);
-      checkRev();
-      duration0=0;
-      duration1=0;
-      overflow=0;
-    }
-  }
 }
 
 void pReg(int speedL, int speedR)
@@ -319,4 +345,5 @@ void wheelSpeed1()
   duration1++;
   c1++;
 }
+
 
