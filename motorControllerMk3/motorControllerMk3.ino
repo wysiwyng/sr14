@@ -2,7 +2,9 @@
 #include "pins_arduino.h"
 #include <TimerThree.h>
 
-#define debug
+//#define debug
+
+#define VERSION 123
 
 #define pi 3.14159265
 
@@ -31,8 +33,8 @@
 #define pwm0 PIN_B5
 #define pwm1 PIN_B6
 
-#define wheelDiameter 9
-#define wheelDistance 41.5
+#define wheelDiameter 11
+#define wheelDistance 45
 #define cpr 1600
 
 #define cpcm cpr/(wheelDiameter*pi)
@@ -191,8 +193,17 @@ void loop()
     Serial1.print("count: ");
     Serial1.println(counter);
 #endif
-    if(counter > 0 || rec == 36) counter++;
+    if(counter > 0 || rec == '$') counter++;
     if(counter > 1) vars[counter - 2] = rec;
+    if(counter == 0)
+    {
+      switch(rec)
+      {
+        case 'v':
+          Serial.write(VERSION);
+          break;
+      }
+    }
     if(counter == 6)
     {
       counter = 0;
