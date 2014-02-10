@@ -1,6 +1,7 @@
 #include "wiring_private.h"
 #include "pins_arduino.h"
 #include <TimerThree.h>
+#include <avr/wdt.h>
 
 //#define debug
 
@@ -106,6 +107,10 @@ void timer3_int()
 
 void setup()
 {
+  MCUSR &= ~(1 << WDRF);
+  wdt_disable();
+
+  //wdt_disable();
   pinMode(pwm0, OUTPUT);
   pinMode(pwm1, OUTPUT);
   pinMode(dir0A, OUTPUT);
