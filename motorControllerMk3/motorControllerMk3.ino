@@ -1,11 +1,9 @@
-#include "wiring_private.h"
-#include "pins_arduino.h"
 #include <TimerThree.h>
 #include <avr/wdt.h>
 
 //#define debug
 
-#define VERSION 123
+#define VERSION 127
 
 #define pi 3.14159265
 
@@ -16,20 +14,10 @@
 
 
 #define dir0A PIN_D6    //PD6
-#define dir0A_on (PORTD |= (1 << 6))
-#define dir0A_off (PORTD &= ~(1 << 6))
-
 #define dir0B PIN_D4     //PD4
-#define dir0B_on (PORTD |= (1 << 4))
-#define dir0B_off (PORTD &= ~(1 << 4))
 
 #define dir1A PIN_B4     //PB4
-#define dir1A_on (PORTB |= (1 << 4))
-#define dir1A_off (PORTB &= ~(1 << 4))
-
 #define dir1B PIN_D7     //PD7
-#define dir1B_on (PORTD |= (1 << 7))
-#define dir1B_off (PORTD &= ~(1 << 7))
 
 #define pwm0 PIN_B5
 #define pwm1 PIN_B6
@@ -44,18 +32,16 @@
 #define maxFaults 20
 #define minSpeed 5
 
-word c0;
-word c1;
+word c0 = 0;
+word c1 = 0;
 
-double dist;
+double dist = 0;
 
-byte overflow;
-
-volatile int duration0;//Encoder0 number of pulses
-volatile int duration1;//Encoder1 number of pulses
+volatile int duration0 = 0;//Encoder0 number of pulses
+volatile int duration1 = 0;//Encoder1 number of pulses
 
 int setPoint = 0; // 0 would be straight ahead
-double p = 10; // needs tuning
+byte p = 10; // needs tuning
 int error = 0;
 int speed = 0; // set the speed of which the vechicle should move
 int output = 0;
@@ -64,11 +50,10 @@ volatile int faultCount = 0;
 
 volatile boolean completed = true;
 volatile boolean fault = false;
-volatile boolean preFault = false;
+volatile boolean preFault = true;
 
 byte counter = 0;
-byte vars[5] = {
-  0, 0, 0, 0, 0};
+byte vars[5] = {0, 0, 0, 0, 0};
 
 void setup()
 {
@@ -85,28 +70,28 @@ void setup()
   motorsFloat();
 
   Serial.begin(115200); //Initialize the serial port
+  
 #ifdef debug
   Serial1.begin(115200);
 #endif
+
   attachInterrupt(0, wheelSpeed0, CHANGE);
   attachInterrupt(1, wheelSpeed1, CHANGE);
 
   Timer3.initialize(20000);
   Timer3.attachInterrupt(timer3_int);
   Timer3.start();
-  byte lamps[4] = {
-    dir0A, dir0B, dir1A, dir1B      };
-  boolean temp = LOW;
 
-  for(int i = 0; i < 4; i++){
-    digitalWrite(lamps[i], 1);
-    delay(100);
-  }
-  for(int i = 0; i < 4; i++){
-    digitalWrite(lamps[i], 0);
-    delay(100);
-  }  
-
+  digitalWrite(dir0A, HIGH);
+  digitalWrite(dir0B, HIGH);
+  digitalWrite(dir1A, HIGH);
+  digitalWrite(dir1B, HIGH);
+  delay(500);
+  digitalWrite(dir0A, LOW);
+  digitalWrite(dir0B, LOW);
+  digitalWrite(dir1A, LOW);
+  digitalWrite(dir1B, LOW);
+  
 #ifdef debug
   Serial1.println("ready");
 #endif
@@ -119,12 +104,14 @@ void loop()
   if(Serial.available())
   {
     byte rec = Serial.read();
+    
 #ifdef debug
     Serial1.print("in byte: ");
     Serial1.println(rec);
     Serial1.print("count: ");
     Serial1.println(counter);
 #endif
+
     if(counter > 0 || rec == '$') counter++;
     if(counter > 1) vars[counter - 2] = rec;
     if(counter == 0)
@@ -142,9 +129,10 @@ void loop()
       byte instruction = vars[0];
       speed = vars[1];
       setPoint = vars[2];
-      boolean f = bitRead(instruction,2);
-      boolean turn = bitRead(instruction,1);
-      boolean brake = bitRead(instruction,0); 
+      boolean f = bitRead(instruction, 2);
+      boolean turn = bitRead(instruction, 1);
+      boolean brake = bitRead(instruction, 0);
+      
 #ifdef debug
       Serial1.println("complete command received");
       Serial1.println(instruction);
@@ -201,13 +189,17 @@ void loop()
 
       if(dist > 0) completed = false;
       fault = false;
+      
 #ifdef debug
       Serial1.println("waiting for completion");
 #endif
+
       while(!completed) ;
+      
 #ifdef debug
       Serial1.println("completed");
 #endif
+
       Serial.print('$');
       if(fault) bitClear(instruction, 3);
       Serial.write(instruction);
@@ -221,11 +213,12 @@ void loop()
 
 void checkRev()
 {
-  if(dist==0 || speed==0) {
+  if(dist == 0 || speed == 0)
+  {
     return;
   }
   noInterrupts();
-  if(c0 >= (dist*cpcm) || c1 >= (dist*cpcm))
+  if(c0 >= (dist * cpcm) || c1 >= (dist * cpcm))
   {
     motorsBrake();
     resetVars();
