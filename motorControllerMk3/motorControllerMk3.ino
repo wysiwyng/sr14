@@ -53,21 +53,18 @@ volatile boolean fault = false;
 volatile boolean preFault = true;
 
 byte counter = 0;
-byte vars[5] = {0, 0, 0, 0, 0};
+uint8_t vars[5] = {0, 0, 0, 0, 0};
 
 void setup()
 {
   MCUSR &= ~(1 << WDRF);
   wdt_disable();
+  
+  DDRD |= ((1 << 4) | (1 << 6) | (1 << 7));
+  DDRB |= ((1 << 4) | (1 << 5) | (1 << 6));
 
-  pinMode(pwm0, OUTPUT);
-  pinMode(pwm1, OUTPUT);
-  pinMode(dir0A, OUTPUT);
-  pinMode(dir0B, OUTPUT);
-  pinMode(dir1A, OUTPUT);
-  pinMode(dir1B, OUTPUT);
-
-  motorsFloat();
+  PORTD &= ~((1 << 4) | (1 << 6) | (1 << 7));
+  PORTB &= ~((1 << 4) | (1 << 5) | (1 << 6));
 
   Serial.begin(115200); //Initialize the serial port
   
@@ -82,21 +79,17 @@ void setup()
   Timer3.attachInterrupt(timer3_int);
   Timer3.start();
 
-  digitalWrite(dir0A, HIGH);
-  digitalWrite(dir0B, HIGH);
-  digitalWrite(dir1A, HIGH);
-  digitalWrite(dir1B, HIGH);
+  PORTD |= ((1 << 4) | (1 << 6) | (1 << 7));
+  PORTB |= (1 << 4);
   delay(500);
-  digitalWrite(dir0A, LOW);
-  digitalWrite(dir0B, LOW);
-  digitalWrite(dir1A, LOW);
-  digitalWrite(dir1B, LOW);
+  PORTD &= ~((1 << 4) | (1 << 6) | (1 << 7));
+  PORTB &= ~(1 << 4);
   
 #ifdef debug
   Serial1.println("ready");
 #endif
 
-  motorsBrake();
+  PORTB |= ((1 << 5) | (1 << 6));
 }
 
 void loop()
@@ -112,16 +105,22 @@ void loop()
     Serial1.println(counter);
 #endif
 
-    if(counter > 0 || rec == '$') counter++;
-    if(counter > 1) vars[counter - 2] = rec;
     if(counter == 0)
     {
       switch(rec)
       {
-      case 'v':
-        Serial.write(VERSION);
-        break;
+        case 'v':
+          Serial.write(VERSION);
+          break;
+        case '$':
+          counter = 1;
+          break;
       }
+    }
+    else if(counter > 0)
+    {
+      counter++;
+      vars[counter - 2] = rec;
     }
     if(counter == 6)
     {
@@ -129,9 +128,9 @@ void loop()
       byte instruction = vars[0];
       speed = vars[1];
       setPoint = vars[2];
-      boolean f = bitRead(instruction, 2);
-      boolean turn = bitRead(instruction, 1);
-      boolean brake = bitRead(instruction, 0);
+      //byte f = instruction & (1 << 2);
+      //byte turn = instruction & (1 << 1);
+      //byte brake = instruction & (1 << 0);
       
 #ifdef debug
       Serial1.println("complete command received");
@@ -141,7 +140,7 @@ void loop()
       Serial1.println(word(vars[3], vars[4]));
 #endif
 
-      if(brake)
+      if(instruction & (1 << 0))
       {
         motorsBrake();
       }
@@ -151,11 +150,11 @@ void loop()
       }
       else 
       {
-        if(turn)
+        if(instruction & (1 << 1))
         {
-          dist = word(vars[3], vars[4]) * cmpd;
+          dist = (vars[4] << 8 | vars[3]) * cmpd;
           setPoint = 0;
-          if(f)
+          if(instruction & (1 << 2))
           {
             PORTD |= (1 << 4);
             PORTD &= ~((1 << 6) | (1 << 7));
@@ -170,14 +169,14 @@ void loop()
         }
         else
         {
-          dist = word(vars[3], vars[4]);
-          if(f)
+          dist = (vars[4] << 8 | vars[3]);
+          if(instruction & (1 << 2))
           {
             PORTD &= ~(1 << 6);
             PORTD |= ((1 << 4) | (1 << 7));
             PORTB &= ~(1 << 4);
           }
-          else if (!f)
+          else if (!(instruction & (1 << 2)))
           {
             PORTD |= (1 << 6);
             PORTD &= ~((1 << 4) | (1 << 7));
@@ -185,6 +184,8 @@ void loop()
           }
         }
         enableTimers();
+        c0 = 0;
+        c1 = 0;
       }
 
       if(dist > 0) completed = false;
@@ -222,7 +223,6 @@ void checkRev()
   {
     motorsBrake();
     resetVars();
-    fault = false;
   }
   interrupts();
 }
@@ -244,6 +244,7 @@ void timer3_int()
   {
     motorsBrake();
     resetVars();
+    faultCount = 0;
     fault = true;
   }
   else
@@ -261,9 +262,7 @@ void enableTimers()
 
 void motorsBrake()
 {
-  PORTD &= ~((1 << 4) | (1 << 6) | (1 << 7));
-  PORTB &= ~(1 << 4);
-  TCCR1A &= ~((1 << COM1A1) | (1 << COM1B1));
+  motorsOff();
   PORTB |= ((1 << 5) | (1 << 6));
   OCR1A = 0;
   OCR1B = 0;
@@ -271,12 +270,19 @@ void motorsBrake()
 
 void motorsFloat()
 {
-  PORTD &= ~((1 << 4) | (1 << 6) | (1 << 7));
-  PORTB &= ~(1 << 4);
-  TCCR1A &= ~((1 << COM1A1) | (1 << COM1B1));
+  motorsOff();
   PORTB &= ~((1 << 5) | (1 << 6));
   OCR1A = 0;
   OCR1B = 0;
+}
+
+void motorsOff()
+{
+  if((PORTD & 0xC0) == 0xC0) PORTD &= ~0xC0;
+  else if((PORTD & 0x90) == 0x90) PORTD &= ~0x90;
+  else if((PORTD & 0xC0) == 0) PORTD |= 0xC0;
+  else if((PORTD & 0x90) == 0) PORTD |= 0x90;
+  TCCR1A &= ~((1 << COM1A1) | (1 << COM1B1));
 }
 
 void resetVars()
@@ -284,8 +290,6 @@ void resetVars()
   speed = 0;
   setPoint = 0;
   dist = 0;
-  c0 = 0;
-  c1 = 0; 
   completed = true;
 }
 
