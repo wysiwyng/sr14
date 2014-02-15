@@ -3,17 +3,14 @@
 
 //#define debug
 
-#define VERSION 127
+#define VERSION 132
 
 #define pi 3.14159265
 
-
 #define encoder0pinA PIN_D0
-
 #define encoder1pinA PIN_D1
 
-
-#define dir0A PIN_D6    //PD6
+#define dir0A PIN_D6     //PD6
 #define dir0B PIN_D4     //PD4
 
 #define dir1A PIN_B4     //PB4
@@ -29,31 +26,44 @@
 #define cpcm cpr/(wheelDiameter*pi)
 #define cmpd (wheelDistance*pi)/360
 
-#define maxFaults 20
-#define minSpeed 5
+#define maxFaults 40
+#define minSpeed 10
 
-word c0 = 0;
-word c1 = 0;
+volatile unsigned long c0 = 0;
+volatile unsigned long c1 = 0;
 
-double dist = 0;
+unsigned long dist = 0;
 
-volatile int duration0 = 0;//Encoder0 number of pulses
-volatile int duration1 = 0;//Encoder1 number of pulses
+byte duration0 = 0;//Encoder0 number of pulses
+byte duration1 = 0;//Encoder1 number of pulses
 
-int setPoint = 0; // 0 would be straight ahead
-byte p = 10; // needs tuning
-int error = 0;
-int speed = 0; // set the speed of which the vechicle should move
+char setPoint = 0; // 0 would be straight ahead
+#define p 10 // needs tuning
+char error = 0;
+byte speed = 0; // set the speed of which the vechicle should move
 int output = 0;
 
-volatile int faultCount = 0;
+byte faultCount = 0;
 
-volatile boolean completed = true;
-volatile boolean fault = false;
-volatile boolean preFault = true;
+volatile byte status = 0;
+
+#define get_completed status & (1 << 0)
+#define get_fault status & (1 << 1)
+#define get_preFault status & (1 << 2)
+#define get_wait status & (1 << 3)
+
+#define set_completed status |= (1 << 0)
+#define set_fault status |= (1 << 1)
+#define set_preFault status |= (1 << 2)
+#define set_wait status |= (1 << 3)
+
+#define reset_completed status &= ~(1 << 0)
+#define reset_fault status &= ~(1 << 1)
+#define reset_preFault status &= ~(1 << 2)
+#define reset_wait status &= ~(1 << 3)
 
 byte counter = 0;
-uint8_t vars[5] = {0, 0, 0, 0, 0};
+byte vars[5] = {0, 0, 0, 0, 0};
 
 void setup()
 {
@@ -119,28 +129,24 @@ void loop()
     }
     else if(counter > 0)
     {
+      vars[counter - 1] = rec;
       counter++;
-      vars[counter - 2] = rec;
     }
     if(counter == 6)
     {
       counter = 0;
-      byte instruction = vars[0];
       speed = vars[1];
       setPoint = vars[2];
-      //byte f = instruction & (1 << 2);
-      //byte turn = instruction & (1 << 1);
-      //byte brake = instruction & (1 << 0);
       
 #ifdef debug
       Serial1.println("complete command received");
-      Serial1.println(instruction);
+      Serial1.println(vars[0]);
       Serial1.println(speed);
       Serial1.println(setPoint);
       Serial1.println(word(vars[3], vars[4]));
 #endif
 
-      if(instruction & (1 << 0))
+      if(vars[0] & (1 << 0))
       {
         motorsBrake();
       }
@@ -150,11 +156,11 @@ void loop()
       }
       else 
       {
-        if(instruction & (1 << 1))
+        if(vars[0] & (1 << 1))
         {
-          dist = (vars[4] << 8 | vars[3]) * cmpd;
+          dist = word(vars[3], vars[4]) * cmpd;
           setPoint = 0;
-          if(instruction & (1 << 2))
+          if(vars[0] & (1 << 2))
           {
             PORTD |= (1 << 4);
             PORTD &= ~((1 << 6) | (1 << 7));
@@ -169,14 +175,14 @@ void loop()
         }
         else
         {
-          dist = (vars[4] << 8 | vars[3]);
-          if(instruction & (1 << 2))
+          dist = word(vars[3], vars[4]);
+          if(vars[0] & (1 << 2))
           {
             PORTD &= ~(1 << 6);
             PORTD |= ((1 << 4) | (1 << 7));
             PORTB &= ~(1 << 4);
           }
-          else if (!(instruction & (1 << 2)))
+          else if (!(vars[0] & (1 << 2)))
           {
             PORTD |= (1 << 6);
             PORTD &= ~((1 << 4) | (1 << 7));
@@ -188,27 +194,34 @@ void loop()
         c1 = 0;
       }
 
-      if(dist > 0) completed = false;
-      fault = false;
+      if(dist > 0) reset_completed;
+      else set_completed;
       
+      set_wait;
+      reset_fault;
+
 #ifdef debug
       Serial1.println("waiting for completion");
 #endif
-
-      while(!completed) ;
-      
-#ifdef debug
-      Serial1.println("completed");
-#endif
-
-      Serial.print('$');
-      if(fault) bitClear(instruction, 3);
-      Serial.write(instruction);
-      Serial.write(vars[1]);
-      Serial.write(vars[2]);
-      Serial.write(vars[3]);
-      Serial.write(vars[4]);
     }
+  }
+  if(!get_completed && get_wait)
+  {
+    checkRev();
+  }
+  else if(get_completed && get_wait)
+  {
+#ifdef debug
+    Serial1.println("completed");
+#endif
+    Serial.print('$');
+    if(get_fault) bitClear(vars[0], 3);
+    Serial.write(vars[0]);
+    Serial.write(vars[1]);
+    Serial.write(vars[2]);
+    Serial.write(vars[3]);
+    Serial.write(vars[4]);
+    reset_wait;
   }
 }
 
@@ -218,34 +231,32 @@ void checkRev()
   {
     return;
   }
-  noInterrupts();
   if(c0 >= (dist * cpcm) || c1 >= (dist * cpcm))
   {
     motorsBrake();
     resetVars();
   }
-  interrupts();
 }
 
 void timer3_int()
 {
   if((duration0 < minSpeed || duration1 < minSpeed) && speed > 0)
   {
-    if(preFault) faultCount++;
+    if(get_preFault) faultCount++;
     else 
     {
-      preFault = true;
+      set_preFault;
       faultCount = 0;
     }
   }
-  else preFault = false;
+  else reset_preFault;
   
   if(faultCount > maxFaults)
   {
     motorsBrake();
     resetVars();
     faultCount = 0;
-    fault = true;
+    set_fault;
   }
   else
   {
@@ -253,7 +264,6 @@ void timer3_int()
     checkRev();
   }
 }
-
 
 void enableTimers()
 {
@@ -290,7 +300,7 @@ void resetVars()
   speed = 0;
   setPoint = 0;
   dist = 0;
-  completed = true;
+  set_completed;
 }
 
 void pReg()
