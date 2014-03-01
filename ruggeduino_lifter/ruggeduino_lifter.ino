@@ -7,9 +7,9 @@
 
 #define taster 4
 
-#define token 11000
-#define drive 80000
-#define top 122000
+#define token 15000
+#define drive 70000
+#define top 95000
 
 volatile unsigned long encoder0Pos = 0;
 
