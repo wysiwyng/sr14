@@ -32,7 +32,7 @@
 volatile unsigned long c0 = 0;
 volatile unsigned long c1 = 0;
 
-unsigned long dist = 0;
+volatile unsigned long dist = 0;
 
 byte duration0 = 0;//Encoder0 number of pulses
 byte duration1 = 0;//Encoder1 number of pulses
@@ -63,13 +63,14 @@ volatile byte status = 0;
 #define reset_wait status &= ~(1 << 3)
 
 byte counter = 0;
-byte vars[5] = {0, 0, 0, 0, 0};
+byte vars[5] = {
+  0, 0, 0, 0, 0};
 
 void setup()
 {
   MCUSR &= ~(1 << WDRF);
   wdt_disable();
-  
+
   DDRD |= ((1 << 4) | (1 << 6) | (1 << 7));
   DDRB |= ((1 << 4) | (1 << 5) | (1 << 6));
 
@@ -77,7 +78,7 @@ void setup()
   PORTB &= ~((1 << 4) | (1 << 5) | (1 << 6));
 
   Serial.begin(115200); //Initialize the serial port
-  
+
 #ifdef debug
   Serial1.begin(115200);
 #endif
@@ -94,7 +95,7 @@ void setup()
   delay(500);
   PORTD &= ~((1 << 4) | (1 << 6) | (1 << 7));
   PORTB &= ~(1 << 4);
-  
+
 #ifdef debug
   Serial1.println("ready");
 #endif
@@ -107,7 +108,7 @@ void loop()
   if(Serial.available())
   {
     byte rec = Serial.read();
-    
+
 #ifdef debug
     Serial1.print("in byte: ");
     Serial1.println(rec);
@@ -119,12 +120,12 @@ void loop()
     {
       switch(rec)
       {
-        case 'v':
-          Serial.write(VERSION);
-          break;
-        case '$':
-          counter = 1;
-          break;
+      case 'v':
+        Serial.write(VERSION);
+        break;
+      case '$':
+        counter = 1;
+        break;
       }
     }
     else if(counter > 0)
@@ -137,7 +138,7 @@ void loop()
       counter = 0;
       speed = vars[1];
       setPoint = vars[2];
-      
+
 #ifdef debug
       Serial1.println("complete command received");
       Serial1.println(vars[0]);
@@ -158,7 +159,10 @@ void loop()
       {
         if(vars[0] & (1 << 1))
         {
-          dist = word(vars[3], vars[4]) * cmpd;
+          dist = word(vars[3], vars[4]);
+          dist = dist * cpcm;
+          dist = dist * cmpd;
+          if(dist < 1 && word(vars[3], vars[4]) > 0) dist = 1;
           setPoint = 0;
           if(vars[0] & (1 << 2))
           {
@@ -176,6 +180,7 @@ void loop()
         else
         {
           dist = word(vars[3], vars[4]);
+          dist = dist * cpcm;
           if(vars[0] & (1 << 2))
           {
             PORTD &= ~(1 << 6);
@@ -196,7 +201,7 @@ void loop()
 
       if(dist > 0) reset_completed;
       else set_completed;
-      
+
       set_wait;
       reset_fault;
 
@@ -231,7 +236,7 @@ void checkRev()
   {
     return;
   }
-  if(c0 >= (dist * cpcm) || c1 >= (dist * cpcm))
+  if(c0 >= (dist) || c1 >= (dist))
   {
     motorsBrake();
     resetVars();
@@ -250,7 +255,7 @@ void timer3_int()
     }
   }
   else reset_preFault;
-  
+
   if(faultCount > maxFaults)
   {
     motorsBrake();
@@ -347,3 +352,4 @@ void wheelSpeed1()
   duration1++;
   c1++;
 }
+
