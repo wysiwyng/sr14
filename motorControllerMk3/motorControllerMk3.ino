@@ -1,7 +1,8 @@
 #include <TimerThree.h>
 #include <avr/wdt.h>
+#include <SoftwareSerial.h>
 
-//#define debug
+#define debug
 
 #define VERSION 132
 
@@ -51,20 +52,25 @@ volatile byte status = 0;
 #define get_fault status & (1 << 1)
 #define get_preFault status & (1 << 2)
 #define get_wait status & (1 << 3)
+#define get_off status & (1 << 4)
 
 #define set_completed status |= (1 << 0)
 #define set_fault status |= (1 << 1)
 #define set_preFault status |= (1 << 2)
 #define set_wait status |= (1 << 3)
+#define set_off status |= (1 << 4)
 
 #define reset_completed status &= ~(1 << 0)
 #define reset_fault status &= ~(1 << 1)
 #define reset_preFault status &= ~(1 << 2)
 #define reset_wait status &= ~(1 << 3)
+#define reset_off status &= ~(1 << 4)
 
 byte counter = 0;
 byte vars[5] = {
   0, 0, 0, 0, 0};
+
+SoftwareSerial debugSer(MISO, MOSI); //rx tx
 
 void setup()
 {
@@ -80,7 +86,7 @@ void setup()
   Serial.begin(115200); //Initialize the serial port
 
 #ifdef debug
-  Serial1.begin(115200);
+  debugSer.begin(9600);
 #endif
 
   attachInterrupt(0, wheelSpeed0, CHANGE);
@@ -97,7 +103,7 @@ void setup()
   PORTB &= ~(1 << 4);
 
 #ifdef debug
-  Serial1.println("ready");
+  debugSer.println("ready");
 #endif
 
   PORTB |= ((1 << 5) | (1 << 6));
@@ -105,15 +111,56 @@ void setup()
 
 void loop()
 {
+  if(debugSer.available())
+  {
+    byte rec = debugSer.read();
+    if(rec == 's')
+    {
+      speed = 0;
+      motorsBrake();
+    }
+    else
+    {
+      enableTimers();
+      switch(rec)
+      {
+      case 'w':
+        speed = 255;
+        PORTD &= ~(1 << 6);
+        PORTD |= ((1 << 4) | (1 << 7));
+        PORTB &= ~(1 << 4);
+        break;
+      case 'x':
+        speed = 255;
+        PORTD |= (1 << 6);
+        PORTD &= ~((1 << 4) | (1 << 7));
+        PORTB |= (1 << 4);
+        break;
+      case 'a':
+        speed = 130;
+        PORTD &= ~(1 << 4);
+        PORTD |= ((1 << 6) | (1 << 7));
+        PORTB &= ~(1 << 4);
+        break;
+      case 'd':
+        speed = 130;
+        PORTD |= (1 << 4);
+        PORTD &= ~((1 << 6) | (1 << 7));
+        PORTB |= (1 << 4);
+        break;
+      }
+    }
+  }
   if(Serial.available())
   {
     byte rec = Serial.read();
 
 #ifdef debug
-    Serial1.print("in byte: ");
-    Serial1.println(rec);
-    Serial1.print("count: ");
-    Serial1.println(counter);
+    debugSer.print("in:");
+    debugSer.print(rec);
+    debugSer.print("\rc:");
+    debugSer.print(counter);
+    debugSer.print("\r");
 #endif
 
     if(counter == 0)
@@ -140,11 +187,15 @@ void loop()
       setPoint = vars[2];
 
 #ifdef debug
-      Serial1.println("complete command received");
-      Serial1.println(vars[0]);
-      Serial1.println(speed);
-      Serial1.println(setPoint);
-      Serial1.println(word(vars[3], vars[4]));
+      debugSer.print("compl\r");
+      debugSer.print(vars[0]);
+      debugSer.print("\r");
+      debugSer.print(speed);
+      debugSer.print("\r");
+      debugSer.print(setPoint);
+      debugSer.print("\r");
+      debugSer.print(word(vars[3], vars[4]));
+      debugSer.print("\r");
 #endif
 
       if(vars[0] & (1 << 0))
@@ -160,7 +211,6 @@ void loop()
         if(vars[0] & (1 << 1))
         {
           dist = word(vars[3], vars[4]);
-          dist = dist * cpcm;
           dist = dist * cmpd;
           if(dist < 1 && word(vars[3], vars[4]) > 0) dist = 1;
           setPoint = 0;
@@ -180,7 +230,6 @@ void loop()
         else
         {
           dist = word(vars[3], vars[4]);
-          dist = dist * cpcm;
           if(vars[0] & (1 << 2))
           {
             PORTD &= ~(1 << 6);
@@ -206,7 +255,7 @@ void loop()
       reset_fault;
 
 #ifdef debug
-      Serial1.println("waiting for completion");
+      debugSer.print("wait\r");
 #endif
     }
   }
@@ -217,7 +266,7 @@ void loop()
   else if(get_completed && get_wait)
   {
 #ifdef debug
-    Serial1.println("completed");
+    debugSer.print("done\r");
 #endif
     Serial.print('$');
     if(get_fault) bitClear(vars[0], 3);
@@ -236,7 +285,7 @@ void checkRev()
   {
     return;
   }
-  if(c0 >= (dist) || c1 >= (dist))
+  if(c0 >= (dist * cpcm) || c1 >= (dist * cpcm))
   {
     motorsBrake();
     resetVars();
@@ -272,6 +321,7 @@ void timer3_int()
 
 void enableTimers()
 {
+  reset_off;
   TCCR1A |= ((1 << COM1A1) | (1 << COM1B1));
 }  
 
@@ -293,6 +343,8 @@ void motorsFloat()
 
 void motorsOff()
 {
+  if(get_off) return;
+  set_off;
   if((PORTD & 0xC0) == 0xC0) PORTD &= ~0xC0;
   else if((PORTD & 0x90) == 0x90) PORTD &= ~0x90;
   else if((PORTD & 0xC0) == 0) PORTD |= 0xC0;
@@ -352,4 +404,5 @@ void wheelSpeed1()
   duration1++;
   c1++;
 }
+
 
