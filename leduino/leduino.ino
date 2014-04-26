@@ -59,11 +59,20 @@ void setup()
 }
 byte in = 0;
 void loop()
-{
-  if(digitalRead(2) == HIGH) in = 1;
-  else if(digitalRead(3) == HIGH) in = 2;
-  else if(digitalRead(4) == HIGH) in = 3;
-  else in = 0;
+{ 
+  byte in1 = digitalRead(2);
+  byte in2 = digitalRead(3);
+  byte in3 = digitalRead(4);
+  
+  if(in1 == LOW && in2 == LOW)
+    in = 0;
+  else if (in1 == HIGH && in2 == LOW)
+    in = 1;
+  else if (in1 == LOW && in2 == HIGH)
+    in = 2;
+  else if (in1 == HIGH && in2 == HIGH)
+    in = 3;
+  
   switch(in)
   {
     case 0:
@@ -92,7 +101,6 @@ void loop()
       case 1:
         color = idleColor;
         break;
-
       case 2:
         color = attackColor;
         break;
@@ -100,9 +108,22 @@ void loop()
         color = scoreColor;
         break;
     }
-    
     strip.setPixelColor(i, color);
     strip.setPixelColor(i + 1, color);
+  }
+  for (int i = 27; i < 33; i++)
+    strip.setPixelColor(i, strip.Color(127, 127, 127));
+    
+  if (in3 == HIGH)
+  {
+    val = (exp(sin(millis()/100.0*PI)) - 0.36787944)*54.0;
+    uint32_t color2 = strip.Color(val, val / 2, 0);
+    strip.setPixelColor(2, color2);
+    strip.setPixelColor(3, color2);
+    strip.setPixelColor(11, color2);
+    strip.setPixelColor(12, color2);
+    strip.setPixelColor(20, color2);
+    strip.setPixelColor(21, color2);    
   }
   strip.show();
 }
